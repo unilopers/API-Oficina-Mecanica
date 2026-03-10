@@ -29,9 +29,10 @@ public class SecurityFilter extends OncePerRequestFilter {
 
             try {
                 String username = jwtUtil.extractUsername(token);
+                String email = jwtUtil.extractEmail(token);
 
                 if (username != null && jwtUtil.validateToken(token, username)) {
-                    UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(username, null,
+                    UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(email, null,
                             null);
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 }
