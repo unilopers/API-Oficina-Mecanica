@@ -1,5 +1,6 @@
 package com.unifil.oficinaMecanica.service.implementacao;
 
+import com.unifil.oficinaMecanica.async.AuditoriaClienteService;
 import com.unifil.oficinaMecanica.dto.request.ClienteRequestDTO;
 import com.unifil.oficinaMecanica.dto.response.VeiculoResponseDTO;
 import com.unifil.oficinaMecanica.entity.ClienteEntity;
@@ -27,6 +28,9 @@ public class ClienteServiceImp implements ClienteService {
     @Autowired
     private EmailService emailService;
 
+    @Autowired
+    private AuditoriaClienteService auditoriaClienteService;
+
     @Override
     public boolean cadastrarNovoCliente(ClienteRequestDTO dto) throws Exception {
         try {
@@ -35,6 +39,10 @@ public class ClienteServiceImp implements ClienteService {
             cliente.setNome(dto.nome());
             cliente.setEmail(dto.email());
             clienteRepository.save(cliente);
+            
+            // Registra auditoria de forma assíncrona
+            auditoriaClienteService.registrarCriacao(dto.cpf(), dto.nome(), dto.email());
+            
             emailService.enviarEmailBoasVindas(dto.email(), dto.nome());
             return true;
         } catch (Exception e) {
@@ -45,10 +53,19 @@ public class ClienteServiceImp implements ClienteService {
     @Override
     public boolean atualizarInformacoes(ClienteRequestDTO dto) throws Exception {
         try {
+            // Busca informações anteriores para auditoria
+            Optional<ClienteEntity> clienteExistente = clienteRepository.findById(dto.cpf());
+            String nomeAntigo = clienteExistente.map(ClienteEntity::getNome).orElse("");
+            String emailAnterior = clienteExistente.map(ClienteEntity::getEmail).orElse("");
+            
             ClienteEntity cliente = new ClienteEntity();
             cliente.setNome(dto.nome());
             cliente.setEmail(dto.email());
             clienteRepository.save(cliente);
+            
+            // Registra auditoria de forma assíncrona
+            auditoriaClienteService.registrarAtualizacao(dto.cpf(), nomeAntigo, dto.nome(), 
+                                                         emailAnterior, dto.email());
             return true;
         } catch (Exception e) {
             throw new Exception("Ocorreu um erro ao tentar atualizar as informações do cliente.\n" + e.getMessage());
@@ -58,8 +75,17 @@ public class ClienteServiceImp implements ClienteService {
     @Override
     public boolean removerCliente(String cpf) throws Exception {
         try {
-            clienteRepository.deleteById(cpf);
-            return true;
+            // Busca informações do cliente antes de remover
+            Optional<ClienteEntity> clienteOptional = clienteRepository.findById(cpf);
+            if (clienteOptional.isPresent()) {
+                ClienteEntity cliente = clienteOptional.get();
+                clienteRepository.deleteById(cpf);
+                
+                // Registra auditoria de forma assíncrona
+                auditoriaClienteService.registrarDelecao(cliente.getCpf(), cliente.getNome(), cliente.getEmail());
+                return true;
+            }
+            return false;
         } catch (Exception e) {
             throw new Exception("Ocorreu um erro ao tentar remover o cliente.\n" + e.getMessage());
         }
