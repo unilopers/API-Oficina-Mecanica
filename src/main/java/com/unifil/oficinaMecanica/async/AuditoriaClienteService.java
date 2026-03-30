@@ -8,25 +8,12 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-/**
- * Serviço assíncrono para auditoria de alterações na entidade Cliente.
- * Registra todas as operações (CREATE, UPDATE, DELETE) de forma não-bloqueante.
- * 
- * @author Pedro Reis (Auditoria de Alterações)
- */
 @Service
 public class AuditoriaClienteService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AuditoriaClienteService.class);
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    /**
-     * Registra a criação de um novo cliente de forma assíncrona.
-     *
-     * @param cpf  CPF do cliente criado
-     * @param nome Nome do cliente criado
-     * @param email Email do cliente criado
-     */
     @Async("auditoriaExecutor")
     public void registrarCriacao(String cpf, String nome, String email) {
         try {
@@ -41,15 +28,6 @@ public class AuditoriaClienteService {
         }
     }
 
-    /**
-     * Registra a atualização de informações de um cliente de forma assíncrona.
-     *
-     * @param cpf        CPF do cliente atualizado
-     * @param nomAntigo  Nome anterior
-     * @param nomeNovo   Novo nome
-     * @param emailAntigo Email anterior
-     * @param emailNovo  Novo email
-     */
     @Async("auditoriaExecutor")
     public void registrarAtualizacao(String cpf, String nomAntigo, String nomeNovo,
                                       String emailAntigo, String emailNovo) {
@@ -73,13 +51,6 @@ public class AuditoriaClienteService {
         }
     }
 
-    /**
-     * Registra a exclusão de um cliente de forma assíncrona.
-     *
-     * @param cpf   CPF do cliente removido
-     * @param nome  Nome do cliente removido
-     * @param email Email do cliente removido
-     */
     @Async("auditoriaExecutor")
     public void registrarDelecao(String cpf, String nome, String email) {
         try {
