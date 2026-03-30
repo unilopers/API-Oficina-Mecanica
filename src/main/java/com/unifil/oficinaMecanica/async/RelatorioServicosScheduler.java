@@ -1,45 +1,54 @@
 package com.unifil.oficinaMecanica.async;
 
+import com.unifil.oficinaMecanica.entity.OrdemDeServicoEntity;
+import com.unifil.oficinaMecanica.entity.ServicoEntity;
+import com.unifil.oficinaMecanica.repository.OrdemDeServicoRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 @Component
 public class RelatorioServicosScheduler {
 
     private static final Logger log = LoggerFactory.getLogger(RelatorioServicosScheduler.class);
 
+    @Autowired
+    private OrdemDeServicoRepository repository;
+
     @Scheduled(cron = "0 0 23 * * ?")
     public void gerarRelatorioDiarioOS() {
         String dataAtual = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"));
-        log.info("[CRON JOB]  [{}] A iniciar geração do relatório assíncrono de serviços...", dataAtual);
+        log.info("[CRON JOB] [" + dataAtual + "] Iniciando geracao do relatorio...");
 
         try {
-            log.info("[CRON JOB]  A procurar Ordens de Serviço finalizadas na base de dados...");
-            Thread.sleep(2000); // Simulação do tempo de busca na base de dados
+            List<OrdemDeServicoEntity> todasAsOs = repository.findAll();
 
-            int totalOsConcluidas = 14; 
-            double valorTotalArrecadado = 4350.75;
+            List<OrdemDeServicoEntity> concluidas = todasAsOs.stream()
+                    .filter(os -> os.getStatus() == OrdemDeServicoEntity.Status.FINALIZADA)
+                    .toList();
 
-            if (totalOsConcluidas < 0) {
-                throw new RuntimeException("Inconsistência na contagem de Ordens de Serviço.");
-            }
+            int total = concluidas.size();
+            
+            BigDecimal faturamento = concluidas.stream()
+                    .filter(os -> os.getServico() != null && os.getServico().getValor() != null)
+                    .map(os -> (BigDecimal) os.getServico().getValor())
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-            log.info("[CRON JOB] ===========================================");
-            log.info("[CRON JOB]  RELATÓRIO DIÁRIO GERADO COM SUCESSO");
-            log.info("[CRON JOB]  Total de OS Finalizadas hoje: {}", totalOsConcluidas);
-            log.info("[CRON JOB]  Valor Total Arrecadado: R$ {}", valorTotalArrecadado);
-            log.info("[CRON JOB] ===========================================");
+            log.info("[CRON JOB] -------------------------------------------");
+            log.info("[CRON JOB] RELATORIO DIARIO GERADO COM SUCESSO");
+            log.info("[CRON JOB] Total de Ordens Concluidas: " + total);
+            log.info("[CRON JOB] Faturamento Total: R$ " + faturamento.toString());
+            log.info("[CRON JOB] -------------------------------------------");
 
-        } catch (InterruptedException e) {
-            log.error("[CRON JOB]  Erro de interrupção: {}", e.getMessage());
-            Thread.currentThread().interrupt();
         } catch (Exception e) {
-            log.error("[CRON JOB]  Falha ao gerar relatório diário: {}. Uma nova tentativa será feita no próximo ciclo.", e.getMessage());
+            log.error("[CRON JOB] Erro ao processar dados do banco: " + e.getMessage());
         }
     }
 }
