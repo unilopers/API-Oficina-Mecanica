@@ -32,6 +32,9 @@ public class OrdemDeServicoServiceImp implements OrdemDeServicoService {
     @Autowired
     private ApplicationEventPublisher eventPublisher;
 
+    @Autowired
+    private OrdemServicoAsyncService ordemServicoAsyncService;
+
     @Override
     public boolean cadastrarNovaOrdemDeServico(OrdemDeServicoRequestDTO dto) throws Exception {
         try {
@@ -52,6 +55,7 @@ public class OrdemDeServicoServiceImp implements OrdemDeServicoService {
             ordemDeServico.setStatus(OrdemDeServicoEntity.Status.EM_ABERTO);
 
             ordemDeServicoRepository.save(ordemDeServico);
+            ordemServicoAsyncService.processarOrdemAsync(ordemDeServico.getId());
             return true;
         } catch (Exception e) {
             throw new Exception("Ocorreu um erro ao tentar cadastrar a ordem de serviço.\n" + e.getMessage());

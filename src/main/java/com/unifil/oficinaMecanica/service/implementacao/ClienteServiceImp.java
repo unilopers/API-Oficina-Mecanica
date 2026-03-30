@@ -7,6 +7,7 @@ import com.unifil.oficinaMecanica.entity.VeiculoEntity;
 import com.unifil.oficinaMecanica.repository.ClienteRepository;
 import com.unifil.oficinaMecanica.repository.VeiculoRepository;
 import com.unifil.oficinaMecanica.service.interfaces.ClienteService;
+import com.unifil.oficinaMecanica.service.interfaces.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -23,6 +24,9 @@ public class ClienteServiceImp implements ClienteService {
     @Autowired
     private VeiculoRepository veiculoRepository;
 
+    @Autowired
+    private EmailService emailService;
+
     @Override
     public boolean cadastrarNovoCliente(ClienteRequestDTO dto) throws Exception {
         try {
@@ -31,6 +35,7 @@ public class ClienteServiceImp implements ClienteService {
             cliente.setNome(dto.nome());
             cliente.setEmail(dto.email());
             clienteRepository.save(cliente);
+            emailService.enviarEmailBoasVindas(dto.email(), dto.nome());
             return true;
         } catch (Exception e) {
             throw new Exception("Ocorreu um erro ao tentar cadastrar o cliente.\n" + e.getMessage());
